@@ -66,6 +66,14 @@ class PlayersController extends Controller
     public function destroy($id)
     {
         //
+        try{
+            Player::query()->
+            where('id',$id)->
+            delete();
+            echo 'success!';
+        } catch(){
+            echo'error!';
+        }
     }
 
     /**
