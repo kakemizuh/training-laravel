@@ -28,6 +28,29 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "DELETE players",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/players/{id}",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"players"
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }
