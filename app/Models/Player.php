@@ -36,7 +36,7 @@ class Player extends Model
     {
        
             return(
-                $newid = Player::query()->
+                Player::query()->
                 insertGetId(
                 [
                     'name'=>$name,
