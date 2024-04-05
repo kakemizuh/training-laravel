@@ -60,12 +60,13 @@ class PlayersController extends Controller
         $player = new Player();
 
         try{
-            $player->playerUpdate($id,$request->name,$request->hp,$request->mp,$request->money);
-            echo'success';
+        $player->playerUpdate($id,$request->name,$request->hp,$request->mp,$request->money);
+        return 'success';
         }
-        catch(PDOException $e)
+        catch(QueryException $e)
         {
-            echo'error';
+            return 'error';
+
         }
     }
 
@@ -81,11 +82,11 @@ class PlayersController extends Controller
         try
         {
             $player->playerDestroy($id);
-            echo'success';
+            return'success';
         }
-        catch(PDOException $e)
+        catch(QueryException $e)
         {
-            echo'error';
+            return'error';
         }
 
         
@@ -101,11 +102,11 @@ class PlayersController extends Controller
         $player = new Player();
         try{
             $newid = $player->playerCreate($request->name,$request->hp,$request->mp,$request->money);
-            echo'new id:'.$newid;
+            return'new id:'.$newid;
         }
-        catch(PDOException $e)
+        catch(QueryException $e)
         {
-            echo'error';
+            return'error';
         }
     }
 

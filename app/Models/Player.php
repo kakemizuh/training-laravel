@@ -10,6 +10,11 @@ class Player extends Model
     public $timestamps = false;
     use HasFactory;
 
+    /**
+     * プレイヤーのidとnameを全件取得する
+     * 
+     * @return 全プレイヤーのidとname
+     */
     public function playerIndex()
     {
         return (
@@ -18,6 +23,11 @@ class Player extends Model
         get());
     }
 
+    /**
+     * プレイヤーのレコードを更新する
+     * 
+     * @param int id,name,hp,mp,money
+     */
     public function playerUpdate($id,$name,$hp,$mp,$money)
     {
             Player::query()->
@@ -32,6 +42,12 @@ class Player extends Model
             );
     }
 
+    /**
+     * 新規プレイヤーのレコードを作成し、idを返す
+     * 
+     * @param int name,hp,mp,money
+     * @return 新規プレイヤーのid
+     */
     public function playerCreate($name,$hp,$mp,$money)
     {
        
@@ -47,6 +63,11 @@ class Player extends Model
             ));
     }
 
+    /**
+     * idで指定したプレイヤーのレコードを削除する
+     * 
+     * @param int id
+     */
     public function playerDestroy($id)
     {
                 Player::query()->
