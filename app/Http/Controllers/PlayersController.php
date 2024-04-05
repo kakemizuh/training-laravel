@@ -21,9 +21,8 @@ class PlayersController extends Controller
     public function index()
     {
         $player = new Player();
-        //require_once 'App\Models\Player.php';
         return new Response(
-            $player->index()
+            $player->playerIndex()
         );
     }
 
@@ -58,24 +57,16 @@ class PlayersController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
         $player = new Player();
 
-        /*
-        $name=$request->__get('name');
-        $hp=$request->__get('hp');
-        $mp=$request->__get('mp');
-        $money=$request->__get('money');
-        
-
-        $name=>$request->name;
-        $hp=>$request->hp;
-        $mp=>$request->mp;
-        $money=>$request->money;
-
-        */
-
-        $player->update_m($id,$request->name,$request->hp,$request->mp,$request->money);
+        try{
+            $player->playerUpdate($id,$request->name,$request->hp,$request->mp,$request->money);
+            echo'success';
+        }
+        catch(PDOException $e)
+        {
+            echo'error';
+        }
     }
 
     /**
@@ -87,7 +78,15 @@ class PlayersController extends Controller
     public function destroy($id)
     {
         $player = new Player();
-        $player->destroy_m($id);
+        try
+        {
+            $player->playerDestroy($id);
+            echo'success';
+        }
+        catch(PDOException $e)
+        {
+            echo'error';
+        }
 
         
     }
@@ -100,9 +99,14 @@ class PlayersController extends Controller
     public function create(Request $request)
     {
         $player = new Player();
-
-        $player->create($request->name,$request->hp,$request->mp,$request->money);
-
+        try{
+            $newid = $player->playerCreate($request->name,$request->hp,$request->mp,$request->money);
+            echo'new id:'.$newid;
+        }
+        catch(PDOException $e)
+        {
+            echo'error';
+        }
     }
 
     /**
