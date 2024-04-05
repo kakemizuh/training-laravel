@@ -8,8 +8,11 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
+
+
 class PlayersController extends Controller
 {
+    
     /**
      * Display a listing of the resource.
      *
@@ -17,10 +20,10 @@ class PlayersController extends Controller
      */
     public function index()
     {
+        $player = new Player();
         return new Response(
-            Player::query()->
-            select(['id', 'name'])->
-            get());
+            $player->playerIndex()
+        );
     }
 
     /**
@@ -54,7 +57,17 @@ class PlayersController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $player = new Player();
+
+        try
+        {
+            $player->playerUpdate($id,$request->name,$request->hp,$request->mp,$request->money);
+            return 'success';
+        }
+        catch(QueryException $e)
+        {
+            return 'error';
+        }
     }
 
     /**
@@ -65,7 +78,18 @@ class PlayersController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $player = new Player();
+        try
+        {
+            $player->playerDestroy($id);
+            return'success';
+        }
+        catch(QueryException $e)
+        {
+            return'error';
+        }
+
+        
     }
 
     /**
@@ -73,9 +97,17 @@ class PlayersController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
-        //
+        $player = new Player();
+        try{
+            $newid = $player->playerCreate($request->name,$request->hp,$request->mp,$request->money);
+            return'new id:'.$newid;
+        }
+        catch(QueryException $e)
+        {
+            return'error';
+        }
     }
 
     /**
