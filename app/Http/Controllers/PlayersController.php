@@ -59,14 +59,14 @@ class PlayersController extends Controller
     {
         $player = new Player();
 
-        try{
-        $player->playerUpdate($id,$request->name,$request->hp,$request->mp,$request->money);
-        return 'success';
+        try
+        {
+            $player->playerUpdate($id,$request->name,$request->hp,$request->mp,$request->money);
+            return 'success';
         }
         catch(QueryException $e)
         {
             return 'error';
-
         }
     }
 
