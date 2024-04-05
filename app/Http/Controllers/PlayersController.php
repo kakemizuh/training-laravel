@@ -8,8 +8,11 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
+
+
 class PlayersController extends Controller
 {
+    
     /**
      * Display a listing of the resource.
      *
@@ -17,10 +20,11 @@ class PlayersController extends Controller
      */
     public function index()
     {
+        $player = new Player();
+        //require_once 'App\Models\Player.php';
         return new Response(
-            Player::query()->
-            select(['id', 'name'])->
-            get());
+            $player->index()
+        );
     }
 
     /**
@@ -55,6 +59,23 @@ class PlayersController extends Controller
     public function update(Request $request, $id)
     {
         //
+        $player = new Player();
+
+        /*
+        $name=$request->__get('name');
+        $hp=$request->__get('hp');
+        $mp=$request->__get('mp');
+        $money=$request->__get('money');
+        
+
+        $name=>$request->name;
+        $hp=>$request->hp;
+        $mp=>$request->mp;
+        $money=>$request->money;
+
+        */
+
+        $player->update_m($id,$request->name,$request->hp,$request->mp,$request->money);
     }
 
     /**
@@ -65,15 +86,10 @@ class PlayersController extends Controller
      */
     public function destroy($id)
     {
-        //
-        try{
-            Player::query()->
-            where('id',$id)->
-            delete();
-            echo 'success!';
-        } catch(){
-            echo'error!';
-        }
+        $player = new Player();
+        $player->destroy_m($id);
+
+        
     }
 
     /**
@@ -81,9 +97,12 @@ class PlayersController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
-        //
+        $player = new Player();
+
+        $player->create($request->name,$request->hp,$request->mp,$request->money);
+
     }
 
     /**
