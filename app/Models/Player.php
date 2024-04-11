@@ -73,5 +73,19 @@ class Player extends Model
                 Player::query()->
                 where('id',$id)->
                 delete();
+    } 
+
+    /**
+     * idで指定したプレイヤーのレコードを１件取得する
+     * 
+     * @param int id
+     * @return プレイヤー情報のレコード１件
+     */
+    public function playerGet($id)
+    {
+        return(
+        Player::query()->
+        where('id',$id)->
+        first());
     }
 }
