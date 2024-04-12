@@ -14,6 +14,8 @@ use Exception;
 
 class PlayersController extends Controller
 {
+    const ITEMTYPE_HP_POTION = 1;
+    const ITEMTYPE_MP_POTION = 2;
     /**
      * Display a listing of the resource.
      *
@@ -132,12 +134,18 @@ class PlayersController extends Controller
     public function addItem($id,Request $request)
     {
         $playerItem = new PlayerItem();
-
+        $player = new Player();
         try
         {
-            if($playerItem->playerItemExists($id,$request->itemId))
+            $playerdata=$player->playerGet($id);
+            if($playerdata == null)
             {
-                $itemcount = $playerItem->playerItemGet($id,$request->itemId)["itemcount"];
+                throw new Exception('no playerdata');
+            }
+            $playerItemdata = $playerItem->playerItemGet($id,$request->itemId);
+            if($playerItemdata != null)
+            {
+                $itemcount = $playerItemdata->itemcount;
                 $itemcount = $request->count + $itemcount;
                 $playerItem->playerItemUpdate($id,$request->itemId,$itemcount);
             }
@@ -149,9 +157,9 @@ class PlayersController extends Controller
             }
             return new Response(["itemId"=>$request->itemId,"count"=>$itemcount]);
         }
-        catch(QueryException $e)
+        catch(Exception $e)
         {
-            return'error';
+            return ["message"=>$e->getMessage()];
         }
     }
     
@@ -177,7 +185,7 @@ class PlayersController extends Controller
             $hp=$playerdata["hp"];
             $mp=$playerdata["mp"];
             $itemdatas = $item->itemIndex();
-            if($itemdatas[0] == null)
+            if(count($itemdatas) == 0)
             {
                 throw new Exception('no itemdata');
             }
@@ -195,60 +203,58 @@ class PlayersController extends Controller
             {
                 throw new Exception('usecount exceeds playeritemcount');
             }
-            else
+            foreach($itemdatas as $itemdata)
             {
-                foreach($itemdatas as $itemdata)
+                if($itemdata->id == $request->itemId)
                 {
-                    if($itemdata->id == $request->itemId)
+                    if($itemdata->item_type == self::ITEMTYPE_HP_POTION)
                     {
-                        if($itemdata->item_type == 1)
-                        {
-                            $status = $hp;
-                        }
-                        else if($itemdata->item_type == 2)
-                        {
-                            $status = $mp;
-                        }
-                        else
-                        {
-                            throw new Exception('no item_type');
-                        }
-                        $itemValue = $itemdata->value;
-                        break;
+                        $status = $hp;
                     }
-                }
-
-                if($status<200)
-                {
-                    if($itemValue*$request->count+$status >= 200)
+                    else if($itemdata->item_type == self::ITEMTYPE_MP_POTION)
                     {
-                        $useitemcount = 0;
-                        for($i=0;$i<$request->count;$i++)
-                        {
-                            $useitemcount++;
-                            if($itemValue*$useitemcount+$status >= 200)
-                            {
-                                break;
-                            }
-                        }
-                        $itemcount-=$useitemcount;
-                        $status=200;
+                        $status = $mp;
                     }
                     else
                     {
-                        $itemcount-=$request->count;
-                        $status+=$itemValue*$request->count;
+                        throw new Exception('no item_type');
+                    }
+                    $itemValue = $itemdata->value;
+                    break;
+                }
+            }
+
+            if($status>=200)
+            {
+                throw new Exception('status is full');
+            }
+            if($itemValue*$request->count+$status >= 200)
+            {
+                $useitemcount = 0;
+                for($i=0;$i<$request->count;$i++)
+                {
+                    $useitemcount++;
+                    if($itemValue*$useitemcount+$status >= 200)
+                    {
+                        break;
                     }
                 }
+                $itemcount-=$useitemcount;
+                $status=200;
+            }
+            else
+            {
+                $itemcount-=$request->count;
+                $status+=$itemValue*$request->count;
+            }
 
-                if($itemdata->item_type == 1)
-                {
-                    $hp = $status;
-                }
-                else if($itemdata->item_type == 2)
-                {
-                    $mp = $status;
-                }
+            if($itemdata->item_type == self::ITEMTYPE_HP_POTION)
+            {
+                $hp = $status;
+            }
+            else if($itemdata->item_type == self::ITEMTYPE_MP_POTION)
+            {
+                $mp = $status;
             }
 
             if($itemcount == 0)
@@ -290,7 +296,8 @@ class PlayersController extends Controller
         {
             $playerdata = $player->playerGet($id);
 
-            if($playerdata == null){
+            if($playerdata == null)
+            {
                 throw new Exception('no playerdata');
             }
 
@@ -333,59 +340,55 @@ class PlayersController extends Controller
             {
                 throw new Exception('percent error');
             }
-            else
+            $percentSUM = 0;
+
+            if($money<$price*$request->count)
             {
-                $percentSUM = 0;
-
-                if($money<$price*$request->count)
-                {
-                    throw new Exception('no money error');
-                }
-                else
-                {
-                    for($i=0;$i<$request->count;$i++)
-                    {
-                        $gachaResult = mt_rand(0,100);
-                        for($j=0;$j<$allitemcount;$j++){
-                            $percentSUM += $percents[$j];
-                            if($gachaResult<$percentSUM)
-                            {
-                                $results[$j]++;
-                                $itemcounts[$j]++;
-                                break;
-                            }
-                        }
-                    }
-                    $money-=$price*$request->count;
-                    $player->playerUpdate($id,$playerdata["name"],
-                    $playerdata["hp"],$playerdata["mp"],$money);
-
-                    $resultdatas = array();
-                    $playerItems = array();
-
-                    for($i=0;$i<$allitemcount;$i++)
-                    {
-                        $playerItem->playerItemUpdate($id,$i+1,$itemcounts[$i]);
-                        if($results[$i]!=0)
-                        {
-                            $resultdatas[]=["itemId"=>$i+1,"count"=>$results[$i]];
-                        }
-                        if($itemcounts[$i]!=0)
-                        {
-                            $playerItems[]=["itemId"=>$i+1,"count"=>$itemcounts[$i]];
-                        }
-                    }
-
-                    return new Response([
-                        "results"=>$resultdatas,
-                        "player"=>["money"=>$money,"items"=>$playerItems]
-                    ]);
-                }  
+                throw new Exception('no money error');
             }
+            for($i=0;$i<$request->count;$i++)
+            {
+                $gachaResult = mt_rand(0,100);
+                for($j=0;$j<$allitemcount;$j++)
+                {
+                    $percentSUM += $percents[$j];
+                    if($gachaResult<$percentSUM)
+                    {
+                        $results[$j]++;
+                        $itemcounts[$j]++;
+                        break;
+                    }
+                }
+            }
+            $money-=$price*$request->count;
+            $player->playerUpdate($id,$playerdata["name"],
+            $playerdata["hp"],$playerdata["mp"],$money);
+
+            $resultdatas = array();
+            $playerItems = array();
+
+            for($i=0;$i<$allitemcount;$i++)
+            {
+                $playerItem->playerItemUpdate($id,$i+1,$itemcounts[$i]);
+                if($results[$i]!=0)
+                {
+                    $resultdatas[]=["itemId"=>$i+1,"count"=>$results[$i]];
+                }
+                if($itemcounts[$i]!=0)
+                {
+                    $playerItems[]=["itemId"=>$i+1,"count"=>$itemcounts[$i]];
+                }
+            }
+
+            return new Response([
+                "results"=>$resultdatas,
+                "player"=>["money"=>$money,"items"=>$playerItems]
+            ]);
         }
         catch(Exception $e)
         {
             return ["message"=>$e->getMessage()];
-        }
+        }  
     }
 }
+
