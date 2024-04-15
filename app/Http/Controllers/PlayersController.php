@@ -26,7 +26,7 @@ class PlayersController extends Controller
     {
         $player = new Player();
         return new Response(
-            $player->playerIndex()
+            $player -> playerIndex()
         );
     }
 
@@ -85,7 +85,7 @@ class PlayersController extends Controller
         $player = new Player();
         try
         {
-            $player->playerDestroy($id);
+            $player -> playerDestroy($id);
             return'success';
         }
         catch(QueryException $e)
@@ -106,8 +106,9 @@ class PlayersController extends Controller
         $player = new Player();
         try
         {
-            $newid = $player->playerCreate($request->name,$request->hp,$request->mp,$request->money);
-            return new Response(["id"=>$newid]);
+            $newid = $player -> playerCreate($request -> name,
+            $request -> hp,$request -> mp,$request -> money);
+            return new Response(["id" => $newid]);
         }
         catch(QueryException $e)
         {
@@ -148,7 +149,7 @@ class PlayersController extends Controller
             }
             
             //アイテムデータの存在チェック
-            $itemdata = $item->itemGet($request->itemId);
+            $itemdata = $item->itemGet($request -> itemId);
             if($itemdata == null)
             {
                 throw new Exception('no itemdata');
@@ -156,25 +157,25 @@ class PlayersController extends Controller
 
             //プレイヤーアイテムデータの存在チェック
             //存在していれば値を取得し、存在しなければレコードを追加する
-            $playerItemdata = $playerItem->playerItemGet($id,$request->itemId);
+            $playerItemdata = $playerItem -> playerItemGet($id, $request -> itemId);
             if($playerItemdata != null)
             {
-                $itemcount = $playerItemdata->itemcount;
+                $itemcount = $playerItemdata -> itemcount;
                 $itemcount = $request->count + $itemcount;
-                $playerItem->playerItemUpdate($id,$request->itemId,$itemcount);
+                $playerItem -> playerItemUpdate($id, $request -> itemId, $itemcount);
             }
             else
             {
-                $playerItem->playerItemCreate($id,$request->itemId,$request->count);
+                $playerItem -> playerItemCreate($id, $request -> itemId, $request -> count);
                 
-                $itemcount=$request->count;
+                $itemcount = $request -> count;
             }
             //増加したアイテムのitemIdと、その結果の現在の所持数を返す
-            return new Response(["itemId"=>$request->itemId,"count"=>$itemcount]);
+            return new Response(["itemId" => $request -> itemId, "count" => $itemcount]);
         }
         catch(Exception $e)
         {
-            return ["message"=>$e->getMessage()];
+            return ["message" => $e -> getMessage()];
         }
     }
     
@@ -194,17 +195,17 @@ class PlayersController extends Controller
         try
         {
             //プレイヤーデータの存在チェック
-            $playerdata=$player->playerGet($id);
+            $playerdata = $player->playerGet($id);
             if($playerdata == null)
             {
                 throw new Exception('no playerdata');
             }
             //プレイヤーのステータスを取得
-            $hp=$playerdata["hp"];
-            $mp=$playerdata["mp"];
+            $hp = $playerdata["hp"];
+            $mp = $playerdata["mp"];
 
             //指定したアイテムデータのレコードの存在チェック
-            $itemdata = $item->itemGet($request->itemId);
+            $itemdata = $item -> itemGet($request->itemId);
             if($itemdata == null)
             {
                 throw new Exception('no itemdata');
@@ -240,7 +241,7 @@ class PlayersController extends Controller
                 $status = $mp;
             }
             //アイテム毎の回復量を格納する
-            $itemValue = $itemdata->value;
+            $itemValue = $itemdata -> value;
 
             //ステータスが最大値でないかチェック
             if($status >= self::STATUS_MAX_VALUE)
@@ -251,10 +252,10 @@ class PlayersController extends Controller
             //アイテムを使用する個数を判定
             //プレイヤーに指定された個数を使用すると、最大値を超えてしまう場合
             $useitemcount = 0;
-            for($i=0;$i<$request->count;$i++)
+            for($i = 0; $i < $request -> count; $i++)
             {
                 $useitemcount++;
-                if($itemValue*$useitemcount+$status >= self::STATUS_MAX_VALUE)
+                if($itemValue * $useitemcount+$status >= self::STATUS_MAX_VALUE)
                 {
                     //使用後ステータスが200を超えた場合ステータスに200を入れる
                     $status = self::STATUS_MAX_VALUE;
@@ -263,14 +264,14 @@ class PlayersController extends Controller
                 $status += $itemValue;
             }
             //元の所持数から使用した分を引く
-            $itemcount-=$useitemcount;
+            $itemcount -= $useitemcount;
 
             //算出したステータスの値を、アイテムタイプによって決まるステータスへ格納
-            if($itemdata->item_type == self::ITEMTYPE_HP_POTION)
+            if($itemdata -> item_type == self::ITEMTYPE_HP_POTION)
             {
                 $hp = $status;
             }
-            else if($itemdata->item_type == self::ITEMTYPE_MP_POTION)
+            else if($itemdata -> item_type == self::ITEMTYPE_MP_POTION)
             {
                 $mp = $status;
             }
@@ -278,26 +279,26 @@ class PlayersController extends Controller
             //０個になった場合はテーブルを削除する
             if($itemcount == 0)
             {
-                $playerItem->playerItemDelete($id,$request->itemId);
+                $playerItem->playerItemDelete($id, $request -> itemId);
             }
             else
             {
-                $playerItem->playerItemUpdate($id,$request->itemId,$itemcount);
+                $playerItem->playerItemUpdate($id, $request -> itemId, $itemcount);
             }
 
             //プレイヤーデータの値を更新する
-            $player->playerUpdate($id,$playerdata["name"],$hp,$mp,$playerdata["money"]);
+            $player -> playerUpdate($id, $playerdata["name"], $hp, $mp, $playerdata["money"]);
 
             //アイテムの使用後の個数と、変化したプレイヤーのステータスを返す
             return new Response([
-                "itemId"=>$request->itemId,"count"=>$itemcount,
-                "player"=>["id"=>(int)$id,
-                "hp"=>$hp,"mp"=>$mp]
+                "itemId" => $request->itemId, "count"=>$itemcount,
+                "player" => ["id" => (int)$id,
+                "hp" => $hp, "mp" => $mp]
             ]);
         }
         catch(Exception $e)
         {
-            return ["message"=>$e->getMessage()];
+            return ["message" => $e -> getMessage()];
         }
         
     }
@@ -326,7 +327,7 @@ class PlayersController extends Controller
             $money = $playerdata["money"];
 
             //アイテムデータの存在チェック
-            $allitemdata = $item->itemIndex();
+            $allitemdata = $item -> itemIndex();
             $allitemcount = count($allitemdata);
             if($allitemcount == 0)
             {
@@ -337,7 +338,7 @@ class PlayersController extends Controller
             $price = 10;
 
             //ガチャに使用するお金が足りているかチェック
-            if($money<$price*$request->count)
+            if($money < $price * $request -> count)
             {
                 throw new Exception('no money error');
             }
@@ -351,7 +352,7 @@ class PlayersController extends Controller
             //指定したプレイヤーのプレイヤーアイテムデータを全アイテム分
             //存在チェックし、所持数と排出確立を配列に格納する
             //存在していなければプレイヤーアイテムデータのレコードを作成する
-            for($i=0;$i<$allitemcount;$i++)
+            for($i = 0; $i < $allitemcount; $i++)
             {
                 $playerItemdata = $playerItem->playerItemGet($id,$i+1);
 
@@ -378,13 +379,13 @@ class PlayersController extends Controller
 
             //ガチャを行い、結果を格納する
             $percentSUM = 0;
-            for($i=0;$i<$request->count;$i++)
+            for($i = 0; $i<$request -> count; $i++)
             {
                 $gachaResult = mt_rand(0,100);
-                for($j=0;$j<$allitemcount;$j++)
+                for($j = 0; $j < $allitemcount; $j++)
                 {
                     $percentSUM += $percents[$j];
-                    if($gachaResult<$percentSUM)
+                    if($gachaResult < $percentSUM)
                     {
                         $results[$j]++;
                         $itemcounts[$j]++;
@@ -394,9 +395,9 @@ class PlayersController extends Controller
             }
 
             //プレイヤーのデータを更新する
-            $money-=$price*$request->count;
-            $player->playerUpdate($id,$playerdata["name"],
-            $playerdata["hp"],$playerdata["mp"],$money);
+            $money -= $price*$request -> count;
+            $player -> playerUpdate($id, $playerdata["name"],
+            $playerdata["hp"], $playerdata["mp"], $money);
 
             //レスポンスに使用するJSONデータを格納する配列を宣言する
             $resultdatas = array();
@@ -405,35 +406,35 @@ class PlayersController extends Controller
             //ガチャで排出されたアイテム毎の個数と
             //その結果増加した現在の所持数をJSONデータで格納すると共に、
             //プレイヤーアイテムデータの更新を行う
-            for($i=0;$i<$allitemcount;$i++)
+            for($i = 0; $i < $allitemcount; $i++)
             {
-                if($results[$i]!=0)
+                if($results[$i] != 0)
                 {
                     //プレイヤーアイテムデータが存在しない場合、
                     //レコードを作成して排出された個数を格納する
                     $playerItemdata = $playerItem->playerItemGet($id,$i+1);
                     if($playerItemdata == null)
                     {
-                        $playerItem->playerItemCreate($id,$i+1,$results[$i]);
+                        $playerItem -> playerItemCreate($id, $i + 1, $results[$i]);
                     }
                     //存在する場合は排出後の所持数でレコードを更新する
                     else
                     {
-                        $playerItem->playerItemUpdate($id,$i+1,$itemcounts[$i]);
+                        $playerItem -> playerItemUpdate($id, $i + 1, $itemcounts[$i]);
                     }
-                    $resultdatas[]=["itemId"=>$i+1,"count"=>$results[$i]];
+                    $resultdatas[] = ["itemId" => $i + 1,"count" => $results[$i]];
                 }
-                if($itemcounts[$i]!=0)
+                if($itemcounts[$i] != 0)
                 {
-                    $playerItems[]=["itemId"=>$i+1,"count"=>$itemcounts[$i]];
+                    $playerItems[] = ["itemId" => $i + 1, "count" => $itemcounts[$i]];
                 }
             }
 
             //ガチャによって排出されたアイテムと、
             //その結果更新された現在のアイテム所持数、所持金を返す
             return new Response([
-                "results"=>$resultdatas,
-                "player"=>["money"=>$money,"items"=>$playerItems]
+                "results" => $resultdatas,
+                "player" => ["money" => $money,"items" => $playerItems]
             ]);
         }
         catch(Exception $e)
