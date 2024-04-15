@@ -16,6 +16,7 @@ class PlayersController extends Controller
 {
     const ITEMTYPE_HP_POTION = 1;
     const ITEMTYPE_MP_POTION = 2;
+    const STATUS_MAX_VALUE = 200;
     /**
      * Display a listing of the resource.
      *
@@ -136,13 +137,21 @@ class PlayersController extends Controller
         //モデルのクラスを格納
         $playerItem = new PlayerItem();
         $player = new Player();
+        $item = new Item();
         try
         {
             //プレイヤーデータの存在チェック
-            $playerdata=$player->playerGet($id);
+            $playerdata = $player->playerGet($id);
             if($playerdata == null)
             {
                 throw new Exception('no playerdata');
+            }
+            
+            //アイテムデータの存在チェック
+            $itemdata = $item->itemGet($request->itemId);
+            if($itemdata == null)
+            {
+                throw new Exception('no itemdata');
             }
 
             //プレイヤーアイテムデータの存在チェック
@@ -230,40 +239,32 @@ class PlayersController extends Controller
             {
                 $status = $mp;
             }
-            else
-            {
-                throw new Exception('no item_type');
-            }
             //アイテム毎の回復量を格納する
             $itemValue = $itemdata->value;
 
             //ステータスが最大値でないかチェック
-            if($status>=200)
+            if($status >= self::STATUS_MAX_VALUE)
             {
                 throw new Exception('status is full');
             }
+
             //アイテムを使用する個数を判定
             //プレイヤーに指定された個数を使用すると、最大値を超えてしまう場合
-            if($itemValue*$request->count+$status >= 200)
+            $useitemcount = 0;
+            for($i=0;$i<$request->count;$i++)
             {
-                $useitemcount = 0;
-                for($i=0;$i<$request->count;$i++)
+                $useitemcount++;
+                if($itemValue*$useitemcount+$status >= self::STATUS_MAX_VALUE)
                 {
-                    $useitemcount++;
-                    if($itemValue*$useitemcount+$status >= 200)
-                    {
-                        break;
-                    }
+                    //使用後ステータスが200を超えた場合ステータスに200を入れる
+                    $status = self::STATUS_MAX_VALUE;
+                    break;
                 }
-                $itemcount-=$useitemcount;
-                $status=200;
+                $status += $itemValue;
             }
-            //プレイヤーに指定された個数使用しても、最大値を超えない場合
-            else
-            {
-                $itemcount-=$request->count;
-                $status+=$itemValue*$request->count;
-            }
+            //元の所持数から使用した分を引く
+            $itemcount-=$useitemcount;
+
             //算出したステータスの値を、アイテムタイプによって決まるステータスへ格納
             if($itemdata->item_type == self::ITEMTYPE_HP_POTION)
             {
@@ -332,6 +333,15 @@ class PlayersController extends Controller
                 throw new Exception('no itemdatas');
             }
 
+            //１回のガチャの価格を格納
+            $price = 10;
+
+            //ガチャに使用するお金が足りているかチェック
+            if($money<$price*$request->count)
+            {
+                throw new Exception('no money error');
+            }
+
             //ガチャの結果、アイテム毎の確率を格納する配列を宣言
             $results = array();
             $percents = array();
@@ -351,7 +361,6 @@ class PlayersController extends Controller
                 }
                 else
                 {
-                    $playerItem->playerItemCreate($id,$i+1,0);
                     $itemcounts[] = 0;
                 }
 
@@ -361,19 +370,10 @@ class PlayersController extends Controller
 
             }
 
-            //１回のガチャの価格を格納
-            $price = 10;
-
             //排出確率の合計が１００を超えていないかチェック
             if($percentSUM > 100)
             {
                 throw new Exception('percent error');
-            }
-
-            //ガチャに使用するお金が足りているかチェック
-            if($money<$price*$request->count)
-            {
-                throw new Exception('no money error');
             }
 
             //ガチャを行い、結果を格納する
@@ -402,13 +402,25 @@ class PlayersController extends Controller
             $resultdatas = array();
             $playerItems = array();
 
-            //ガチャで排出されたアイテム毎の個数と、
-            //その結果増加した現在の所持数をJSONデータで格納
+            //ガチャで排出されたアイテム毎の個数と
+            //その結果増加した現在の所持数をJSONデータで格納すると共に、
+            //プレイヤーアイテムデータの更新を行う
             for($i=0;$i<$allitemcount;$i++)
             {
-                $playerItem->playerItemUpdate($id,$i+1,$itemcounts[$i]);
                 if($results[$i]!=0)
                 {
+                    //プレイヤーアイテムデータが存在しない場合、
+                    //レコードを作成して排出された個数を格納する
+                    $playerItemdata = $playerItem->playerItemGet($id,$i+1);
+                    if($playerItemdata == null)
+                    {
+                        $playerItem->playerItemCreate($id,$i+1,$results[$i]);
+                    }
+                    //存在する場合は排出後の所持数でレコードを更新する
+                    else
+                    {
+                        $playerItem->playerItemUpdate($id,$i+1,$itemcounts[$i]);
+                    }
                     $resultdatas[]=["itemId"=>$i+1,"count"=>$results[$i]];
                 }
                 if($itemcounts[$i]!=0)
