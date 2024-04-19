@@ -88,4 +88,19 @@ class Player extends Model
         where('id',$id)->
         first());
     }
+
+    /**
+     * idで指定したプレイヤーのレコードを１件取得する
+     * 
+     * @param int id
+     * @return プレイヤー情報のレコード１件
+     */
+    public function txPlayerGet($id)
+    {
+        return(
+        Player::query()->
+        where('id',$id)->
+        lockForUpdate()->
+        first());
+    }
 }
