@@ -9,6 +9,7 @@ use App\Models\Item;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 
@@ -133,7 +134,7 @@ class PlayersController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function addItem($id,Request $request)
+    public function addItem($id,Request $request,Response $response)
     {
         //モデルのクラスを格納
         $playerItem = new PlayerItem();
@@ -171,11 +172,12 @@ class PlayersController extends Controller
                 $itemcount = $request -> count;
             }
             //増加したアイテムのitemIdと、その結果の現在の所持数を返す
-            return new Response(["itemId" => $request -> itemId, "count" => $itemcount]);
+            return new Response(["itemId" => $request -> itemId, "count" => $itemcount,
+            "code" => $response -> status()]);
         }
         catch(Exception $e)
         {
-            return ["message" => $e -> getMessage()];
+            return ["message" => $e -> getMessage(),"code" => $response -> status()];
         }
     }
     
@@ -185,17 +187,18 @@ class PlayersController extends Controller
      * @param int id
      * @return \Illuminate\Http\Response
      */
-    public function useItem($id,Request $request)
+    public function useItem($id,Request $request,Response $response)
     {
         //モデルのクラスを格納
         $player = new Player();
         $playerItem = new PlayerItem();
         $item = new Item();
 
+        DB::beginTransaction();
         try
         {
             //プレイヤーデータの存在チェック
-            $playerdata = $player->playerGet($id);
+            $playerdata = $player->txPlayerGet($id);
             if($playerdata == null)
             {
                 throw new Exception('no playerdata');
@@ -288,17 +291,19 @@ class PlayersController extends Controller
 
             //プレイヤーデータの値を更新する
             $player -> playerUpdate($id, $playerdata["name"], $hp, $mp, $playerdata["money"]);
-
+            DB::commit();
             //アイテムの使用後の個数と、変化したプレイヤーのステータスを返す
             return new Response([
                 "itemId" => $request->itemId, "count"=>$itemcount,
                 "player" => ["id" => (int)$id,
-                "hp" => $hp, "mp" => $mp]
+                "hp" => $hp, "mp" => $mp],
+                "code" => $response -> status()
             ]);
         }
         catch(Exception $e)
         {
-            return ["message" => $e -> getMessage()];
+            DB::rollback();
+            return ["message" => $e -> getMessage(),"code" => $response -> status()];
         }
         
     }
@@ -309,7 +314,7 @@ class PlayersController extends Controller
      * @param int id
      * @return \Illuminate\Http\Response
      */
-    public function useGacha($id,Request $request)
+    public function useGacha($id,Request $request,Response $response)
     {
         //モデルのクラスを格納
         $player = new Player();
@@ -317,8 +322,10 @@ class PlayersController extends Controller
         $playerItem = new PlayerItem();
         try
         {
+            DB::beginTransaction();
+
             //プレイヤーデータの存在チェック
-            $playerdata = $player->playerGet($id);
+            $playerdata = $player->txPlayerGet($id);
             if($playerdata == null)
             {
                 throw new Exception('no playerdata');
@@ -345,10 +352,10 @@ class PlayersController extends Controller
 
             //ガチャの結果、アイテム毎の確率を格納する配列を宣言
             $results = array();
-            $percents = array();
             $itemcounts = array();
             $percentSUM = 0;
 
+            
             //指定したプレイヤーのプレイヤーアイテムデータを全アイテム分
             //存在チェックし、所持数と排出確立を配列に格納する
             //存在していなければプレイヤーアイテムデータのレコードを作成する
@@ -376,6 +383,8 @@ class PlayersController extends Controller
             {
                 throw new Exception('percent error');
             }
+
+            
 
             //ガチャを行い、結果を格納する
             $percentSUM = 0;
@@ -429,17 +438,20 @@ class PlayersController extends Controller
                     $playerItems[] = ["itemId" => $i + 1, "count" => $itemcounts[$i]];
                 }
             }
-
+            DB::commit();
+            
             //ガチャによって排出されたアイテムと、
             //その結果更新された現在のアイテム所持数、所持金を返す
             return new Response([
                 "results" => $resultdatas,
-                "player" => ["money" => $money,"items" => $playerItems]
+                "player" => ["money" => $money,"items" => $playerItems],
+                "code" => $response -> status()
             ]);
         }
         catch(Exception $e)
         {
-            return ["message"=>$e->getMessage()];
+            DB::rollback();
+            return ["message"=>$e->getMessage(),"code" => $response -> status()];
         }  
     }
 }
